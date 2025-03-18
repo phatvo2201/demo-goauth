@@ -1,6 +1,9 @@
+version: '3.8'  # Specify a version
+
 services:
   psql_bp:
     image: postgres:latest
+    container_name: psql_bp_container  # Optional: Assign a name to the container
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${BLUEPRINT_DB_DATABASE}
@@ -10,6 +13,41 @@ services:
       - "${BLUEPRINT_DB_PORT}:5432"
     volumes:
       - psql_volume_bp:/var/lib/postgresql/data
+    networks:
+      - backend  # Define network (optional)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BLUEPRINT_DB_USERNAME} -d ${BLUEPRINT_DB_DATABASE}"]
+      interval: 30s
+      retries: 5
+      timeout: 10s
+      start_period: 5s
+
+  go_auth_service:
+    build:
+      context: .  # Adjust to your Go project's directory path
+      dockerfile: Dockerfile  # Specify the Dockerfile (optional if named 'Dockerfile')
+    container_name: go_auth_service  # Name of the Go service container
+    restart: unless-stopped
+    environment:
+      BLUEPRINT_DB_DATABASE: ${BLUEPRINT_DB_DATABASE}
+      BLUEPRINT_DB_USERNAME: ${BLUEPRINT_DB_USERNAME}
+      BLUEPRINT_DB_PASSWORD: ${BLUEPRINT_DB_PASSWORD}
+      BLUEPRINT_DB_PORT: ${BLUEPRINT_DB_PORT}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      PORT: 8080  # Adjust as necessary
+    ports:
+      - "8080:8080"  # Expose the port your Go service listens on
+    depends_on:
+      - psql_bp  # Wait for PostgreSQL to be ready before starting the Go service
+    networks:
+      - backend  # Same network as PostgreSQL
+    volumes:
+      - ./path/to/your/go/project:/go/src  # Mount your Go project to container (optional)
 
 volumes:
-  psql_volume_bp:
+  psql_volume_bp:  # Persist the Postgres data in a named volume
+
+networks:
+  backend:  # Optional: Define a network for communication between multiple services
+    driver: bridge

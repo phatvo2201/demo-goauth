@@ -22,6 +22,8 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	GetUserRole(email string) (string, error)
 }
 
 type service struct {
@@ -52,6 +54,18 @@ func New() Service {
 		db: db,
 	}
 	return dbInstance
+}
+func (s *service) GetUserRole(email string) (string, error) {
+	var role string
+	query := "SELECT role FROM users WHERE email = $1"
+	err := s.db.QueryRow(query, email).Scan(&role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("user with email %s not found", email)
+		}
+		return "", fmt.Errorf("failed to get user role: %v", err)
+	}
+	return role, nil
 }
 
 // Health checks the health of the database connection by pinging the database.
@@ -113,3 +127,13 @@ func (s *service) Close() error {
 	log.Printf("Disconnected from database: %s", database)
 	return s.db.Close()
 }
+
+// func (s *service) GetUserRole(email string) (string, error) {
+// 	var role string
+// 	query := `SELECT r.name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = $1`
+// 	err := s.db.QueryRow(query, email).Scan(&role)
+// 	if err != nil {
+// 		return "", fmt.Errorf("could not fetch role for email %s: %w", email, err)
+// 	}
+// 	return role, nil
+// }

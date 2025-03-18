@@ -5,6 +5,9 @@ import './App.css'
 
 function App() {
   // const [count, setCount] = useState(0)
+  const handleLogin=() => {
+    window.location.href = "http://localhost:8080/auth?provider=google"
+  }
 
   return (
     <>
@@ -24,7 +27,7 @@ function App() {
         </p>
       </div>
       <div>
-      <button >Login With Google </button>
+      <button onClick={handleLogin} >Login With Google </button>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
